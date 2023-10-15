@@ -1,8 +1,14 @@
 import os
+import cv2
 import numpy as np
+from tqdm import tqdm
 from copy import deepcopy
 
+from cil.io import ZEISSDataReader
+from cil.processors import TransmissionAbsorptionConverter
 from cil.utilities.display import show2D, show_geometry
+
+from ct_nerf.Method.path import renameFile
 
 class CILLoader(object):
     def __init__(self, txrm_file_path=None) -> None:
@@ -103,4 +109,31 @@ class CILLoader(object):
             return False
 
         show_geometry(self.data.geometry)
+        return True
+
+    def generateDataset(self, save_dataset_folder_path, print_progress=False):
+        if save_dataset_folder_path[-1] != '/':
+            save_dataset_folder_path += '/'
+
+        os.makedirs(save_dataset_folder_path, exist_ok=True)
+
+        slice_num = self.getSliceNum()
+
+        for_data = range(slice_num)
+        if print_progress:
+            print('[INFO][CILLoader::generateDataset]')
+            print('\t start generate dataset...')
+            for_data = tqdm(for_data)
+
+        for i in for_data:
+            save_image_file_path = save_dataset_folder_path + str(i) + '.png'
+            if os.path.exists(save_image_file_path):
+                continue
+
+            slice_image = self.getSliceImage(i)
+
+            tmp_save_image_file_path = save_image_file_path[:-4] + '_tmp.png'
+            cv2.imwrite(tmp_save_image_file_path, slice_image)
+
+            renameFile(tmp_save_image_file_path, save_image_file_path)
         return True
