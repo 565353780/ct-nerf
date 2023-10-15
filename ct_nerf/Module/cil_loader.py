@@ -1,13 +1,8 @@
-import numpy as np
 import os
-import matplotlib.pyplot as plt
+import numpy as np
+from copy import deepcopy
 
-from cil.io import ZEISSDataReader, TIFFWriter
-from cil.processors import TransmissionAbsorptionConverter, CentreOfRotationCorrector, Slicer
-from cil.framework import AcquisitionData
-from cil.plugins.astra import FBP
-from cil.utilities.display import show2D, show1D, show_geometry
-from cil.utilities.jupyter import islicer, link_islicer
+from cil.utilities.display import show2D, show_geometry
 
 class CILLoader(object):
     def __init__(self, txrm_file_path=None) -> None:
@@ -38,6 +33,20 @@ class CILLoader(object):
         self.slice_direction_list = list(self.data.dimension_labels)
         return True
 
+    def isSliceDirectionValid(self, slice_direction):
+        if slice_direction in self.slice_direction_list:
+            return True
+
+        print('[WARN][CILLoader::isSliceDirectionValid]')
+        valid_directions_str = '[' + self.slice_direction_list[0]
+        for i in range(1, len(self.slice_direction_list)):
+            valid_directions_str += ', ' + self.slice_direction_list[i]
+        valid_directions_str += ']'
+        print('\t slice_direction not found! valid directions: ' + \
+            valid_directions_str)
+        print('\t slice_direction:', slice_direction)
+        return False
+
     def getShape(self):
         if self.data is None:
             print('[WARN][CILLoader::getShape]')
@@ -49,25 +58,28 @@ class CILLoader(object):
     def getSliceNum(self):
         return self.getShape()[0]
 
-    def showGeometry(self):
+    def getSliceImage(self, slice_idx):
         if self.data is None:
-            print('[ERROR][CILLoader::showGeometry]')
+            print('[ERROR][CILLoader::getSliceImage]')
             print('\t data is None! please load data first')
-            return False
+            return None
 
-        show_geometry(self.data.geometry)
-        return True
+        data_array = self.data.as_array()
+
+        data_2d = deepcopy(data_array[slice_idx])
+
+        range_min = data_array.min()
+        range_max = data_array.max()
+
+        slice_image = (255.0 * (data_2d - range_min) /
+            (range_max - range_min)).astype(np.uint8)
+        return slice_image
 
     def showData2D(self, slice_direction, slice_idx):
-        if slice_direction not in self.slice_direction_list:
+        if not self.isSliceDirectionValid(slice_direction):
             print('[ERROR][CILLoader::showData2D]')
-            valid_directions_str = '[' + self.slice_direction_list[0]
-            for i in range(1, len(self.slice_direction_list)):
-                valid_directions_str += ', ' + self.slice_direction_list[i]
-            valid_directions_str += ']'
-            print('\t slice_direction not found! valid directions: ' + \
-                valid_directions_str)
-            print('\t slice_direction:', slice_direction)
+            print('\t isSliceDirectionValid failed!')
+            return False
 
         slice_num = self.getSliceNum()
 
@@ -84,11 +96,11 @@ class CILLoader(object):
         show2D(self.data, slice_list=(slice_direction, slice_idx))
         return True
 
-    def test(self):
-        self.getShape()
-        self.showGeometry()
-        self.showData2D('angle', 0)
-        self.showData2D('angle', -1)
-        self.showData2D('vertical', -1)
-        self.showData2D('horizontal', -1)
+    def showGeometry(self):
+        if self.data is None:
+            print('[ERROR][CILLoader::showGeometry]')
+            print('\t data is None! please load data first')
+            return False
+
+        show_geometry(self.data.geometry)
         return True
