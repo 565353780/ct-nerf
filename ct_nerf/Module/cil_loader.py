@@ -13,7 +13,7 @@ class CILLoader(object):
     def __init__(self, txrm_file_path=None) -> None:
         self.txrm_file_path = None
         self.data = None
-        self.trans_data = None
+        self.slice_direction_list = []
 
         if txrm_file_path is not None:
             assert self.loadTXRMFile(txrm_file_path)
@@ -22,7 +22,7 @@ class CILLoader(object):
     def reset(self):
         self.txrm_file_path = None
         self.data = None
-        self.trans_data = None
+        self.slice_direction_list = []
         return True
 
     def loadTXRMFile(self, txrm_file_path):
@@ -35,6 +35,7 @@ class CILLoader(object):
         self.txrm_file_path = txrm_file_path
         self.data = ZEISSDataReader(file_name=self.txrm_file_path).read()
         self.data = TransmissionAbsorptionConverter()(self.data)
+        self.slice_direction_list = list(self.data.dimension_labels)
         return True
 
     def getShape(self):
@@ -57,7 +58,17 @@ class CILLoader(object):
         show_geometry(self.data.geometry)
         return True
 
-    def showData2D(self, slice_idx):
+    def showData2D(self, slice_direction, slice_idx):
+        if slice_direction not in self.slice_direction_list:
+            print('[ERROR][CILLoader::showData2D]')
+            valid_directions_str = '[' + self.slice_direction_list[0]
+            for i in range(1, len(self.slice_direction_list)):
+                valid_directions_str += ', ' + self.slice_direction_list[i]
+            valid_directions_str += ']'
+            print('\t slice_direction not found! valid directions: ' + \
+                valid_directions_str)
+            print('\t slice_direction:', slice_direction)
+
         slice_num = self.getSliceNum()
 
         if slice_idx < 0:
@@ -70,12 +81,14 @@ class CILLoader(object):
             print('\t slice_idx:', slice_idx)
             return False
 
-        show2D(self.data, slice_list=('angle', slice_idx))
+        show2D(self.data, slice_list=(slice_direction, slice_idx))
         return True
 
     def test(self):
         self.getShape()
         self.showGeometry()
-        self.showData2D(0)
-        self.showData2D(-1)
+        self.showData2D('angle', 0)
+        self.showData2D('angle', -1)
+        self.showData2D('vertical', -1)
+        self.showData2D('horizontal', -1)
         return True
