@@ -1,10 +1,4 @@
-import numpy as np
-import os
-import matplotlib.pyplot as plt
+from ct_nerf.Demo.cil_loader import demo as demo_load_cil
 
-from cil.io import ZEISSDataReader, TIFFWriter
-from cil.processors import TransmissionAbsorptionConverter, CentreOfRotationCorrector, Slicer
-from cil.framework import AcquisitionData
-from cil.plugins.astra import FBP
-from cil.utilities.display import show2D, show1D, show_geometry
-from cil.utilities.jupyter import islicer, link_islicer
+if __name__ == "__main__":
+    demo_load_cil()
